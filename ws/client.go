@@ -92,7 +92,6 @@ func (c *Client) joinRoom(roomName string) *Room {
 func (c *Client) notifyRoomJoined(room *Room) {
 	message := Message{
 		Action: RoomJoinedAction,
-		Target: room,
 		Sender: c,
 	}
 	c.send <- message.encode()
@@ -128,11 +127,7 @@ func (c *Client) handleJoinRoomMessage(message Message) {
 }
 
 func (c *Client) handleLeaveRoomMessage(message Message) {
-	room := c.daHub.GetRoom(message.Message)
-	if room == nil {
-		return
-	}
-	room.server.unregister <- c
+	c.disconnect()
 }
 
 func (client *Client) readPump() {

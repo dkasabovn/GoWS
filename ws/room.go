@@ -65,7 +65,6 @@ func (r *Room) broadcastToClients(message []byte) {
 func (r *Room) notifyClientJoined(client *Client) {
 	message := &Message{
 		Action:  SendMessageAction,
-		Target:  r,
 		Message: fmt.Sprintf("%s joined", client.Name),
 	}
 
