@@ -168,7 +168,6 @@ func (client *Client) writePump() {
 		case message, ok := <-client.send:
 			client.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				// The WsServer closed the channel.
 				client.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
@@ -178,8 +177,6 @@ func (client *Client) writePump() {
 				return
 			}
 			w.Write(message)
-
-			// Attach queued chat messages to the current websocket message.
 			n := len(client.send)
 			for i := 0; i < n; i++ {
 				w.Write(newline)
