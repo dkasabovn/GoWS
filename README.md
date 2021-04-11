@@ -13,10 +13,19 @@ For now this library is made for managing multiple Rooms. Users join a room / 'g
 - Adding Supabase for auth / user storage
 - Making stuff more organized
 
-### Files:
+# Docs for big boy Neo:
 
-##### Client.go
-Manages writing to user and reading from user.
+## HTTP
 
-##### Hub.go
-Manages routing users to proper rooms.
+`/create`  
+Creates a new room. Returns a JSON objet containing the room's unique ID
+```js
+{
+  socket: "1234-1231231-23123123"
+}
+```
+
+## WS
+
+`/ws?name={NAME}&room={ROOM_ID}`
+Connects to the proper websocket room. Room must already be created (using `/create`) before joining.
