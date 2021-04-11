@@ -5,12 +5,20 @@ import (
 	"log"
 )
 
+// Generic Messages
 const SendMessageAction = "send-message"
 const JoinRoomAction = "join-room"
 const LeaveRoomAction = "leave-room"
 const UserJoinedAction = "user-join"
 const UserLeftAction = "user-left"
 const RoomJoinedAction = "room-joined"
+
+// Game Messages
+const StartGame = "start-game"
+const EndGame = "end-game"
+const NextQuestion = "next-question"
+const QuestionSubmitted = "question-submitted"
+const SendAnswer = "send-answer"
 
 type Message struct {
 	Action  string  `json:"action"`
