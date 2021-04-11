@@ -3,7 +3,6 @@ package ws
 import (
 	"encoding/json"
 	"log"
-	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -54,41 +53,6 @@ func NewClient(conn *websocket.Conn, server *Room, name string) *Client {
 	}
 }
 
-func Join(room *Room, w http.ResponseWriter, r *http.Request) {
-	params := r.URL.Query()
-	name, ok := params["name"]
-
-	if !ok {
-		log.Println("Client is a monkey")
-		return
-	}
-
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	client := NewClient(conn, room, name[0])
-
-	go client.writePump()
-	go client.readPump()
-
-	room.server.register <- client
-}
-
-func (c *Client) joinRoom(roomName string) *Room {
-	room := c.daHub.GetRoom(roomName)
-	if room == nil {
-		return nil
-	}
-	if c.room != room {
-		room.server.register <- c
-		c.notifyRoomJoined(room)
-	}
-	return room
-}
-
 func (c *Client) notifyRoomJoined(room *Room) {
 	message := Message{
 		Action: RoomJoinedAction,
@@ -111,19 +75,10 @@ func (c *Client) handleNewMessage(jsonMessage []byte) {
 	case SendMessageAction:
 		c.room.broadcast <- &message
 
-	case JoinRoomAction:
-		c.handleJoinRoomMessage(message)
-
 	case LeaveRoomAction:
 		c.handleLeaveRoomMessage(message)
 	}
 
-}
-
-func (c *Client) handleJoinRoomMessage(message Message) {
-	roomName := message.Message
-
-	c.joinRoom(roomName)
 }
 
 func (c *Client) handleLeaveRoomMessage(message Message) {

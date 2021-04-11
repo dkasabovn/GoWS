@@ -17,13 +17,10 @@ func main() {
 	config.CreateRedisClient()
 
 	fmt.Println("big pog")
+	hub := ws.NewHub()
 
-	mainRoom := ws.NewRoom("main", false)
-	go mainRoom.Run()
-
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		ws.Join(mainRoom, w, r)
-	})
+	http.HandleFunc("/ws", hub.ServeRoom)
+	http.HandleFunc("/create", hub.StartGame)
 
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }

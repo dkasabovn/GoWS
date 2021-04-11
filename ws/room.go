@@ -17,10 +17,9 @@ type Room struct {
 	broadcast chan *Message
 }
 
-func NewRoom(name string, private bool) *Room {
+func NewRoom(private bool) *Room {
 	return &Room{
 		id:        uuid.New(),
-		name:      name,
 		server:    NewWS(),
 		broadcast: make(chan *Message),
 		private:   private,
