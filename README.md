@@ -27,5 +27,33 @@ Creates a new room. Returns a JSON objet containing the room's unique ID
 
 ## WS
 
-`/ws?name={NAME}&room={ROOM_ID}`
+`/ws?name={NAME}&room={ROOM_ID}`  
 Connects to the proper websocket room. Room must already be created (using `/create`) before joining.
+
+### Message Object
+```
+{
+  Action: string,
+  Message: string | map[string]interface{},
+  Sender: Client
+}
+```
+
+##### Actions
+```
+// Generic Messages
+SendMessageAction = "send-message"
+JoinRoomAction = "join-room"
+LeaveRoomAction = "leave-room"
+UserJoinedAction = "user-join"
+UserLeftAction = "user-left"
+RoomJoinedAction = "room-joined"
+
+// Game Messages
+StartGame = "start-game"
+EndGame = "end-game"
+NextQuestion = "next-question"
+QuestionSubmitted = "question-submitted"
+SendAnswer = "send-answer"
+```
+  
