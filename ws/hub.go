@@ -39,13 +39,15 @@ func (h *Hub) StartGame(w http.ResponseWriter, r *http.Request) {
 	data := map[string]interface{}{
 		"socket": room.id.String(),
 	}
-	w.Header().Add("Content-Type", "application/json")
+
 	body, err := json.Marshal(data)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 	w.WriteHeader(http.StatusOK)
 	w.Write(body)
+	w.Header().Add("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	log.Println("Finished request")
 }
 

@@ -1,5 +1,10 @@
 package game
 
+import "time"
+
 type GameManager struct {
-	questions []Question
+	questions       []Question
+	timer           *time.Timer
+	currentQuestion int
+	messages        chan []byte
 }

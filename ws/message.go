@@ -21,9 +21,9 @@ const QuestionSubmitted = "question-submitted"
 const SendAnswer = "send-answer"
 
 type Message struct {
-	Action  string  `json:"action"`
-	Message string  `json:"message"`
-	Sender  *Client `json:"user"`
+	Action string                 `json:"action"`
+	Data   map[string]interface{} `json:"data"`
+	Sender *Client                `json:"user"`
 }
 
 func (message *Message) encode() []byte {

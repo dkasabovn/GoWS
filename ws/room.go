@@ -63,8 +63,10 @@ func (r *Room) broadcastToClients(message []byte) {
 
 func (r *Room) notifyClientJoined(client *Client) {
 	message := &Message{
-		Action:  SendMessageAction,
-		Message: fmt.Sprintf("%s joined", client.Name),
+		Action: SendMessageAction,
+		Data: map[string]interface{}{
+			"message": fmt.Sprintf("%s joined", client.Name),
+		},
 	}
 
 	r.publishRoomMessage(message.encode())
