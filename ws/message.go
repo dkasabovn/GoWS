@@ -14,6 +14,7 @@ const UserLeftAction = "user-left"
 const RoomJoinedAction = "room-joined"
 
 // Game Messages
+const ReadyUp = "read-up"
 const StartGame = "start-game"
 const EndGame = "end-game"
 const NextQuestion = "next-question"

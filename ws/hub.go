@@ -39,12 +39,6 @@ func (h *Hub) StartGame(w http.ResponseWriter, r *http.Request) {
 	data := map[string]interface{}{
 		"socket": room.id.String(),
 	}
-<<<<<<< HEAD
-
-=======
-	w.Header().Add("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
->>>>>>> 9a03a8c12db2b8a29890aba293886eaaa94d9a37
 	body, err := json.Marshal(data)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -90,4 +84,6 @@ func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request) {
 	go client.readPump()
 
 	room.server.register <- client
+
+	log.Println("Client Connected; Pumps Started")
 }

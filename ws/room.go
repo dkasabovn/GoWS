@@ -15,16 +15,21 @@ type Room struct {
 	private   bool
 	server    *Server
 	broadcast chan *Message
+	Commands  chan *Message
 }
 
 func NewRoom(private bool) *Room {
 	return &Room{
 		id:        uuid.New(),
 		server:    NewWS(),
-		broadcast: make(chan *Message),
+		broadcast: make(chan *Message, 1<<3),
 		private:   private,
 		capacity:  1 << 3,
 	}
+}
+
+func (r *Room) Active() int {
+	return len(r.server.clients)
 }
 
 func (r *Room) publishRoomMessage(message []byte) {
@@ -78,10 +83,13 @@ func (r *Room) Run() {
 	for {
 		select {
 		case client := <-r.server.register:
+			log.Println("Room; Client Registered")
 			r.registerClient(client)
 		case client := <-r.server.unregister:
+			log.Println("Room; Client Unregistered")
 			r.unregisterClient(client)
 		case msg := <-r.broadcast:
+			log.Println("Room; Broadcasting")
 			r.publishRoomMessage(msg.encode())
 		}
 	}
