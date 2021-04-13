@@ -40,6 +40,7 @@ func (h *Hub) StartGame(w http.ResponseWriter, r *http.Request) {
 		"socket": room.id.String(),
 	}
 	w.Header().Add("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	body, err := json.Marshal(data)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
