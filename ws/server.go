@@ -6,8 +6,6 @@ type Server struct {
 	clients    map[*Client]bool
 	register   chan *Client
 	unregister chan *Client
-	broadcast  chan *Message
-	room       *Room
 }
 
 func NewWS() *Server {

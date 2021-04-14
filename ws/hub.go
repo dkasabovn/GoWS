@@ -50,32 +50,32 @@ func (h *Hub) StartGame(w http.ResponseWriter, r *http.Request) {
 	log.Println("Finished request")
 }
 
-func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request) {
+func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request) (*Room, bool) {
 	params := r.URL.Query()
 	name, ok := params["name"]
 
 	if !ok {
 		log.Println("Client does not have a name apparently. Really rude of them tbh")
-		return
+		return nil, false
 	}
 
 	roomName, rok := params["room"]
 
 	if !rok {
 		log.Println("No room defined; Central Hub is not configured")
-		return
+		return nil, false
 	}
 
 	room, exists := h.GetRoom(roomName[0])
 	if !exists {
 		log.Println("Room defined but doesn't exist; Front end error?")
-		return
+		return nil, false
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
-		return
+		return nil, false
 	}
 
 	client := NewClient(conn, room, name[0])
@@ -86,4 +86,5 @@ func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request) {
 	room.server.register <- client
 
 	log.Println("Client Connected; Pumps Started")
+	return room, true
 }

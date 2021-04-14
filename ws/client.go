@@ -77,7 +77,7 @@ func (c *Client) handleNewMessage(jsonMessage []byte) {
 
 	switch message.Action {
 	case SendMessageAction:
-		c.room.broadcast <- &message
+		c.room.Broadcast <- &message
 
 	case LeaveRoomAction:
 		c.handleLeaveRoomMessage(message)
@@ -86,12 +86,12 @@ func (c *Client) handleNewMessage(jsonMessage []byte) {
 }
 
 func (c *Client) handleLeaveRoomMessage(message Message) {
-	c.disconnect()
+	c.Disconnect()
 }
 
 func (client *Client) readPump() {
 	defer func() {
-		client.disconnect()
+		client.Disconnect()
 	}()
 
 	client.conn.SetReadLimit(maxMessageSize)
@@ -149,7 +149,7 @@ func (client *Client) writePump() {
 	}
 }
 
-func (c *Client) disconnect() {
+func (c *Client) Disconnect() {
 	c.room.server.unregister <- c
 	close(c.send)
 	c.conn.Close()

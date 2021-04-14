@@ -1,12 +1,13 @@
 package game
 
 import (
+	"log"
 	"main/ws"
 	"time"
 )
 
 type GameManager struct {
-	questions       []Question
+	questions       []MultipleChoice
 	answers         map[string][]interface{}
 	timer           *time.Timer
 	currentQuestion int
@@ -14,6 +15,13 @@ type GameManager struct {
 }
 
 func (gme *GameManager) readyUpStage() {
+	startMsg := &ws.Message{
+		Action: ws.SendMessageAction,
+		Data: map[string]interface{}{
+			"message": "Game started",
+		},
+	}
+	gme.room.Broadcast <- startMsg
 	// TODO Currently skips if one player readies up; Probably should be both
 	gme.timer = time.NewTimer(30 * time.Second)
 	for {
@@ -30,19 +38,56 @@ func (gme *GameManager) readyUpStage() {
 
 func (gme *GameManager) playGameStage() {
 	// TODO do a better job of tracking if all users have answered; Skip if all answered
+	gme.timer = time.NewTimer(5 * time.Second)
 	for {
 		select {
 		case <-gme.timer.C:
-			gme.currentQuestion++
-			return
-		case command := <-gme.room.Commands:
-			if command.Action == ws.QuestionSubmitted {
-				gme.answers[command.Sender.ID.String()][gme.currentQuestion] = command.Data["question"]
+			gme.sendQuestion()
+			gme.currentQuestion += 1
+			if gme.currentQuestion == len(gme.questions) {
+				return
 			}
+			gme.timer.Reset(30 * time.Second)
+			break
 		}
 	}
 }
 
+func (gme *GameManager) sendQuestion() {
+	nextQuestionMsg := &ws.Message{
+		Action: ws.NextQuestion,
+		Data: map[string]interface{}{
+			"message": "You really thought I connected the db. LOL!",
+		},
+	}
+	gme.room.Broadcast <- nextQuestionMsg
+}
+
 func (gme *GameManager) endGameStage() {
-	
+	<-gme.timer.C
+	endGameMsg := &ws.Message{
+		Action: ws.EndGame,
+		Data: map[string]interface{}{
+			"message": "game is over!",
+		},
+	}
+	gme.room.Broadcast <- endGameMsg
+}
+
+func (gme *GameManager) Run() {
+	gme.readyUpStage()
+	log.Println("Finished Ready Up Stage")
+	gme.playGameStage()
+	log.Println("Finished Playing the Game")
+	gme.endGameStage()
+	log.Println("Game wrapped up; Destroying myself ~OwO~")
+	// TODO Destroy room gracefully
+}
+
+func NewGameManager(room *ws.Room) *GameManager {
+	return &GameManager{
+		questions:       []MultipleChoice{{qType: 1, answer: 1, question: "asdfasdf"}},
+		currentQuestion: 0,
+		room:            room,
+	}
 }

@@ -14,7 +14,7 @@ type Room struct {
 	capacity  int
 	private   bool
 	server    *Server
-	broadcast chan *Message
+	Broadcast chan *Message
 	Commands  chan *Message
 }
 
@@ -22,7 +22,7 @@ func NewRoom(private bool) *Room {
 	return &Room{
 		id:        uuid.New(),
 		server:    NewWS(),
-		broadcast: make(chan *Message, 1<<3),
+		Broadcast: make(chan *Message, 1<<3),
 		private:   private,
 		capacity:  1 << 3,
 	}
@@ -88,7 +88,7 @@ func (r *Room) Run() {
 		case client := <-r.server.unregister:
 			log.Println("Room; Client Unregistered")
 			r.unregisterClient(client)
-		case msg := <-r.broadcast:
+		case msg := <-r.Broadcast:
 			log.Println("Room; Broadcasting")
 			r.publishRoomMessage(msg.encode())
 		}

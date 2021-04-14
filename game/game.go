@@ -8,7 +8,7 @@ const (
 )
 
 type Question interface {
-	validate(userResponse interface{}) bool
+	validate(userResponse int) bool
 }
 
 type MultipleChoice struct {
