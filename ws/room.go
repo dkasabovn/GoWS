@@ -39,6 +39,10 @@ func NewRoom(private bool) *Room {
 	}
 }
 
+func (r *Room) ID() string {
+	return r.id.String()
+}
+
 func (r *Room) Active() int {
 	return len(r.clients)
 }
@@ -66,13 +70,14 @@ func (r *Room) subscribeToRoomMessages() {
 
 	ch := pubsub.Channel()
 
-	for msg := range ch {
+	for {
+
 		select {
+		case msg := <-ch:
+			r.broadcastToClients([]byte(msg.Payload))
 		case <-r.ctx.Done():
 			pubsub.Close()
 			return
-		default:
-			r.broadcastToClients([]byte(msg.Payload))
 		}
 	}
 }
@@ -117,6 +122,7 @@ func (r *Room) Run() {
 			close(r.unregister)
 			close(r.Broadcast)
 			close(r.Commands)
+			MainHub.RemoveRoom(r.ID())
 			return
 		}
 

@@ -16,19 +16,17 @@ func main() {
 	flag.Parse()
 
 	config.CreateRedisClient()
-
+	config.CreateFirestoreClient()
 	fmt.Println("big pog")
-	hub := ws.NewHub()
+	ws.NewHub()
 
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		room, ok := hub.ServeRoom(w, r)
-		if !ok {
-			log.Println("Room connection failed")
-		}
+	http.HandleFunc("/ws", ws.MainHub.ServeRoom)
+	http.HandleFunc("/create", func(w http.ResponseWriter, r *http.Request) {
+		room := ws.MainHub.StartGame(w, r)
 		gme := game.NewGameManager(room)
 		go gme.Run()
 	})
-	http.HandleFunc("/create", hub.StartGame)
 
 	log.Fatal(http.ListenAndServe(*addr, nil))
+
 }

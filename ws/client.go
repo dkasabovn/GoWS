@@ -32,7 +32,7 @@ var (
 	space   = []byte{' '}
 )
 
-var upgrader = websocket.Upgrader{
+var Upgrader = websocket.Upgrader{
 	ReadBufferSize:  4096,
 	WriteBufferSize: 4096,
 	CheckOrigin: func(r *http.Request) bool {
@@ -41,12 +41,11 @@ var upgrader = websocket.Upgrader{
 }
 
 type Client struct {
-	conn  *websocket.Conn
-	send  chan []byte
-	ID    uuid.UUID
-	Name  string
-	room  *Room
-	daHub *Hub
+	conn *websocket.Conn
+	send chan []byte
+	ID   uuid.UUID
+	Name string
+	room *Room
 }
 
 func NewClient(conn *websocket.Conn, server *Room, name string) *Client {
@@ -81,7 +80,8 @@ func (c *Client) handleNewMessage(jsonMessage []byte) {
 	switch message.Action {
 	case SendMessageAction:
 		c.room.Broadcast <- &message
-
+	case QuestionSubmitted, ReadyUp:
+		c.room.Commands <- &message
 	case LeaveRoomAction:
 		c.handleLeaveRoomMessage(message)
 	}
@@ -156,4 +156,10 @@ func (c *Client) Disconnect() {
 	c.conn.Close()
 	c.room.unregister <- c
 	close(c.send)
+}
+
+func (c *Client) Run() {
+	go c.writePump()
+	go c.readPump()
+	c.room.register <- c
 }

@@ -6,12 +6,14 @@ import (
 	"net/http"
 )
 
+var MainHub *Hub
+
 type Hub struct {
 	registeredRooms map[string]*Room
 }
 
-func NewHub() *Hub {
-	return &Hub{
+func NewHub() {
+	MainHub = &Hub{
 		registeredRooms: make(map[string]*Room),
 	}
 }
@@ -25,19 +27,23 @@ func (h *Hub) GetRoom(room string) (*Room, bool) {
 	return nil, false
 }
 
+func (h *Hub) RemoveRoom(room string) {
+	delete(h.registeredRooms, room)
+}
+
 func (h *Hub) CreateRoom() *Room {
 	r := NewRoom(false)
-	h.registeredRooms[r.id.String()] = r
+	h.registeredRooms[r.ID()] = r
 	go r.Run()
 	return r
 }
 
-func (h *Hub) StartGame(w http.ResponseWriter, r *http.Request) {
+func (h *Hub) StartGame(w http.ResponseWriter, r *http.Request) *Room {
 	// TODO once done with game manager logic like totally do this
 	log.Println("Got create room request")
 	room := h.CreateRoom()
 	data := map[string]interface{}{
-		"socket": room.id.String(),
+		"socket": room.ID(),
 	}
 	body, err := json.Marshal(data)
 	if err != nil {
@@ -48,43 +54,44 @@ func (h *Hub) StartGame(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	log.Println("Finished request")
+	return room
 }
 
-func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request) (*Room, bool) {
+func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 	name, ok := params["name"]
 
 	if !ok {
 		log.Println("Client does not have a name apparently. Really rude of them tbh")
-		return nil, false
 	}
 
 	roomName, rok := params["room"]
 
 	if !rok {
 		log.Println("No room defined; Central Hub is not configured")
-		return nil, false
 	}
 
 	room, exists := h.GetRoom(roomName[0])
 	if !exists {
 		log.Println("Room defined but doesn't exist; Front end error?")
-		return nil, false
 	}
 
-	conn, err := upgrader.Upgrade(w, r, nil)
+	conn, err := Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
-		return nil, false
 	}
 
 	client := NewClient(conn, room, name[0])
 
-	go client.writePump()
-	go client.readPump()
-
-	room.register <- client
+	client.Run()
 
 	log.Println("Client Connected; Pumps Started")
-	return room, true
+}
+
+func (h *Hub) TerminateRoom(id string) {
+	room, ok := h.GetRoom(id)
+	if !ok {
+		return
+	}
+	room.Terminate()
 }
