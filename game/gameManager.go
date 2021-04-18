@@ -1,7 +1,6 @@
 package game
 
 import (
-	"log"
 	"main/ws"
 	"time"
 )
@@ -23,7 +22,7 @@ func (gme *GameManager) readyUpStage() {
 	}
 	gme.room.Broadcast <- startMsg
 	// TODO Currently skips if one player readies up; Probably should be both
-	gme.timer = time.NewTimer(30 * time.Second)
+	gme.timer = time.NewTimer(1 * time.Second)
 	for {
 		select {
 		case <-gme.timer.C:
@@ -38,7 +37,7 @@ func (gme *GameManager) readyUpStage() {
 
 func (gme *GameManager) playGameStage() {
 	// TODO do a better job of tracking if all users have answered; Skip if all answered
-	gme.timer = time.NewTimer(5 * time.Second)
+	gme.timer = time.NewTimer(1 * time.Second)
 	for {
 		select {
 		case <-gme.timer.C:
@@ -47,7 +46,7 @@ func (gme *GameManager) playGameStage() {
 			if gme.currentQuestion == len(gme.questions) {
 				return
 			}
-			gme.timer.Reset(30 * time.Second)
+			gme.timer.Reset(1 * time.Second)
 			break
 		}
 	}
@@ -64,7 +63,6 @@ func (gme *GameManager) sendQuestion() {
 }
 
 func (gme *GameManager) endGameStage() {
-	<-gme.timer.C
 	endGameMsg := &ws.Message{
 		Action: ws.EndGame,
 		Data: map[string]interface{}{
@@ -75,13 +73,13 @@ func (gme *GameManager) endGameStage() {
 }
 
 func (gme *GameManager) Run() {
-	gme.readyUpStage()
-	log.Println("Finished Ready Up Stage")
-	gme.playGameStage()
-	log.Println("Finished Playing the Game")
-	gme.endGameStage()
-	log.Println("Game wrapped up; Destroying myself ~OwO~")
-	// TODO Destroy room gracefully
+	// gme.readyUpStage()
+	// log.Println("Finished Ready Up Stage")
+	// gme.playGameStage()
+	// log.Println("Finished Playing the Game")
+	// gme.endGameStage()
+	// log.Println("Game wrapped up; Destroying myself ~OwO~")
+	gme.room.Terminate()
 }
 
 func NewGameManager(room *ws.Room) *GameManager {

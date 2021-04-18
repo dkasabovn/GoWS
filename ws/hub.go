@@ -83,7 +83,7 @@ func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request) (*Room, bool) {
 	go client.writePump()
 	go client.readPump()
 
-	room.server.register <- client
+	room.register <- client
 
 	log.Println("Client Connected; Pumps Started")
 	return room, true

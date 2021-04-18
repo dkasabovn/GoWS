@@ -22,6 +22,9 @@ const (
 
 	// Maximum message size allowed from peer.
 	maxMessageSize = 10000
+
+	//
+	closeGracePeriod = 10 * time.Second
 )
 
 var (
@@ -150,7 +153,7 @@ func (client *Client) writePump() {
 }
 
 func (c *Client) Disconnect() {
-	c.room.server.unregister <- c
-	close(c.send)
 	c.conn.Close()
+	c.room.unregister <- c
+	close(c.send)
 }
