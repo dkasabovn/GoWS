@@ -15,11 +15,11 @@ type Question interface {
 }
 
 type MultipleChoice struct {
-	QType     int      `firestore:"qType"`
-	Answer    int      `firestore:"answer"`
-	SQuestion string   `firestore:"question"`
-	Qid       int      `firestore:"qid"`
-	Choices   []string `firestore:"choices"`
+	QType     int      `firestore:"qType" json:"qType"`
+	Answer    int      `firestore:"answer" json:"answer"`
+	SQuestion string   `firestore:"question" json:"question"`
+	Qid       int      `firestore:"qid" json:"qid"`
+	Choices   []string `firestore:"choices" json:"choices"`
 }
 
 type FreeResponse struct {
