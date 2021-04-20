@@ -45,6 +45,7 @@ func (gme *GameManager) playGameStage() {
 		case msg := <-gme.room.Commands:
 			err := gme.repo.validate(msg)
 			if err != nil {
+				log.Println(err)
 				continue
 			}
 
