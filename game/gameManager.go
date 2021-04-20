@@ -7,21 +7,29 @@ import (
 )
 
 type GameManager struct {
-	repo  *QuestionRepo
-	timer *time.Timer
-	room  *ws.Room
+	repo    *QuestionRepo
+	timer   *time.Timer
+	room    *ws.Room
+	players int
 }
 
 func (gme *GameManager) readyUpStage() {
 	// TODO Currently skips if one player readies up; Probably should be both
 	gme.timer = time.NewTimer(120 * time.Second)
+	readiedUp := map[string]bool{}
 	for {
 		select {
 		case <-gme.timer.C:
 			return
 		case command := <-gme.room.Commands:
 			if command.Action == ws.ReadyUp {
-				gme.room.Broadcast <- createSimpleMessage(ws.StartGame, "Game Starting you mongoloid. Calm down. Take a breath.")
+				gme.room.Broadcast <- createMessage(ws.ReadyUp, map[string]interface{}{
+					"user": command.Sender.Name,
+				})
+				readiedUp[command.Sender.Name] = true
+			}
+			if len(readiedUp) == gme.room.Active() {
+				gme.players = len(readiedUp)
 				return
 			}
 		}
@@ -30,10 +38,27 @@ func (gme *GameManager) readyUpStage() {
 
 func (gme *GameManager) playGameStage() {
 	// TODO do a better job of tracking if all users have answered; Skip if all answered
-	gme.timer = time.NewTimer(1 * time.Second)
+	gme.timer = time.NewTimer(0 * time.Second)
+	startedFlag := false
 	for {
 		select {
+		case msg := <-gme.room.Commands:
+			err := gme.repo.validate(msg)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			if gme.players == gme.repo.questionsSubmitted() {
+				gme.timer = time.NewTimer(0 * time.Second)
+			}
 		case <-gme.timer.C:
+			if startedFlag {
+				gme.room.Broadcast <- createMessage(ws.SendAnswer, gme.repo.getResults())
+				time.Sleep(5 * time.Second)
+			} else {
+				startedFlag = true
+			}
 			q := gme.repo.nextQuestion()
 			if q == nil {
 				return

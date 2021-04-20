@@ -1,15 +1,17 @@
 package game
 
 import (
+	"errors"
 	"log"
 	"main/config"
+	"main/ws"
 
 	"google.golang.org/api/iterator"
 )
 
 type QuestionRepo struct {
 	questions       []Question
-	sumbissions     map[string][]bool
+	submissions     []map[string]interface{}
 	currentQuestion int
 }
 
@@ -26,18 +28,39 @@ func (qr *QuestionRepo) nextQuestion() *Question {
 	} else {
 		q := &qr.questions[qr.currentQuestion]
 		qr.currentQuestion++
+		qr.submissions = append(qr.submissions, map[string]interface{}{})
 		return q
 	}
 }
 
-func (qr *QuestionRepo) uniqueAnswers() int {
-	i := 0
-	for k := range qr.sumbissions {
-		if len(qr.sumbissions[k]) == qr.currentQuestion {
-			i++
-		}
+func (qr *QuestionRepo) getQuestion() Question {
+	if len(qr.questions) <= qr.currentQuestion {
+		return nil
 	}
-	return i
+	return qr.questions[qr.currentQuestion]
+}
+
+func (qr *QuestionRepo) questionsSubmitted() int {
+	return len(qr.submissions[qr.currentQuestion])
+}
+
+func (qr *QuestionRepo) validate(m *ws.Message) error {
+	if m.Action != ws.QuestionSubmitted {
+		return errors.New("Wrong action")
+	}
+	if currentQuestion, ok := m.Data["currentQuestion"]; ok && currentQuestion.(int) != qr.currentQuestion {
+		return errors.New("Incorrect Question was Provided")
+	}
+	if answer, ok := m.Data["answer"]; ok {
+		isCorrect := qr.getQuestion().validate(answer)
+		qr.submissions[qr.currentQuestion][m.Sender.Name] = isCorrect
+		return nil
+	}
+	return errors.New("No answer provided")
+}
+
+func (qr *QuestionRepo) getResults() map[string]interface{} {
+	return qr.submissions[qr.currentQuestion-1]
 }
 
 // TODO actually get random question IDs

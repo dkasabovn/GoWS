@@ -12,6 +12,7 @@ const (
 
 type Question interface {
 	questionType() int
+	validate(userResponse interface{}) bool
 }
 
 type MultipleChoice struct {
@@ -28,12 +29,18 @@ type FreeResponse struct {
 	question string
 }
 
-func (fr *FreeResponse) validate(userResponse string) bool {
-	return fr.answer.Match([]byte(userResponse))
+func (fr *FreeResponse) validate(userResponse interface{}) bool {
+	if val, ok := userResponse.(string); ok {
+		return fr.answer.Match([]byte(val))
+	}
+	return false
 }
 
-func (mp *MultipleChoice) validate(userResponse int) bool {
-	return userResponse == mp.Answer
+func (mp *MultipleChoice) validate(userResponse interface{}) bool {
+	if val, ok := userResponse.(int); ok {
+		return val == mp.Answer
+	}
+	return false
 }
 
 func (fr *FreeResponse) questionType() int {
