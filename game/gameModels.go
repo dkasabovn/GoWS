@@ -37,8 +37,8 @@ func (fr *FreeResponse) validate(userResponse interface{}) bool {
 }
 
 func (mp *MultipleChoice) validate(userResponse interface{}) bool {
-	if val, ok := userResponse.(int); ok {
-		return val == mp.Answer
+	if val, ok := userResponse.(float64); ok {
+		return int(val) == mp.Answer
 	}
 	return false
 }

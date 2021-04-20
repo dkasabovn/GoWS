@@ -41,19 +41,20 @@ func (qr *QuestionRepo) getQuestion() Question {
 }
 
 func (qr *QuestionRepo) questionsSubmitted() int {
-	return len(qr.submissions[qr.currentQuestion])
+	return len(qr.submissions[qr.currentQuestion-1])
 }
 
 func (qr *QuestionRepo) validate(m *ws.Message) error {
 	if m.Action != ws.QuestionSubmitted {
 		return errors.New("Wrong action")
 	}
-	if currentQuestion, ok := m.Data["currentQuestion"]; ok && currentQuestion.(int) != qr.currentQuestion {
+	if currentQuestion, ok := m.Data["currentQuestion"]; ok && int(currentQuestion.(float64)) != qr.currentQuestion {
 		return errors.New("Incorrect Question was Provided")
 	}
 	if answer, ok := m.Data["answer"]; ok {
-		isCorrect := qr.getQuestion().validate(answer)
-		qr.submissions[qr.currentQuestion][m.Sender.Name] = isCorrect
+		isCorrect := qr.questions[qr.currentQuestion-1].validate(answer)
+		qr.submissions[qr.currentQuestion-1][m.Sender.Name] = isCorrect
+		log.Println(qr.submissions[qr.currentQuestion-1])
 		return nil
 	}
 	return errors.New("No answer provided")
