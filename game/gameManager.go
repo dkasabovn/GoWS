@@ -7,15 +7,17 @@ import (
 )
 
 type GameManager struct {
-	repo    *QuestionRepo
-	timer   *time.Timer
-	room    *ws.Room
-	players int
+	repo         *QuestionRepo
+	timer        *time.Timer
+	room         *ws.Room
+	players      int
+	questionTime int
+	readyUpTime  int
 }
 
 func (gme *GameManager) readyUpStage() {
 	// TODO Currently skips if one player readies up; Probably should be both
-	gme.timer = time.NewTimer(15 * time.Second)
+	gme.timer = time.NewTimer(time.Duration(gme.readyUpTime) * time.Second)
 	readiedUp := map[string]bool{}
 	for {
 		select {
@@ -30,6 +32,9 @@ func (gme *GameManager) readyUpStage() {
 			}
 			if len(readiedUp) == gme.room.Active() {
 				gme.players = len(readiedUp)
+				gme.room.Broadcast <- createMessage(ws.GameStarting, map[string]interface{}{
+					"time": 5,
+				})
 				return
 			}
 		}
@@ -37,9 +42,7 @@ func (gme *GameManager) readyUpStage() {
 }
 
 func (gme *GameManager) playGameStage() {
-	// TODO do a better job of tracking if all users have answered; Skip if all answered
-	gme.timer = time.NewTimer(0 * time.Second)
-	// log.Println(gme)
+	gme.timer = time.NewTimer(5 * time.Second)
 	startedFlag := false
 	for {
 		select {
@@ -66,7 +69,7 @@ func (gme *GameManager) playGameStage() {
 				return
 			}
 			gme.sendQuestion(q)
-			gme.timer.Reset(30 * time.Second)
+			gme.timer.Reset(time.Duration(gme.questionTime) * time.Second)
 			break
 		}
 	}
@@ -78,6 +81,8 @@ func (gme *GameManager) sendQuestion(q *Question) {
 		log.Println("Error")
 		return
 	}
+	// Modify payload to include time information
+	payload["time"] = gme.questionTime
 	nextQuestionMsg := &ws.Message{
 		Action: ws.NextQuestion,
 		Data:   payload,
@@ -127,8 +132,10 @@ func NewGameManager(room *ws.Room) *GameManager {
 	qr := NewQR()
 	qr.LoadRepo()
 	return &GameManager{
-		repo: qr,
-		room: room,
+		repo:         qr,
+		room:         room,
+		questionTime: 30,
+		readyUpTime:  120,
 	}
 }
 

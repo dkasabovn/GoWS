@@ -59,14 +59,6 @@ func NewClient(conn *websocket.Conn, server *Room, name string) *Client {
 	}
 }
 
-func (c *Client) notifyRoomJoined(room *Room) {
-	message := Message{
-		Action: RoomJoinedAction,
-		Sender: c,
-	}
-	c.send <- message.encode()
-}
-
 func (c *Client) handleNewMessage(jsonMessage []byte) {
 
 	var message Message

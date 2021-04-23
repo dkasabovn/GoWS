@@ -2,7 +2,6 @@ package ws
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"main/config"
 
@@ -58,11 +57,29 @@ func (r *Room) publishRoomMessage(message []byte) {
 func (r *Room) unregisterClient(client *Client) {
 	if _, ok := r.clients[client]; ok {
 		delete(r.clients, client)
+		r.notifyClientLeft(client)
 	}
 }
 
 func (r *Room) registerClient(client *Client) {
 	r.clients[client] = true
+	r.notifyClientJoined(client)
+	r.notifyClientOfParticipants(client)
+}
+
+func (r *Room) notifyClientOfParticipants(client *Client) {
+	participantCount := r.Active()
+	participants := make([]string, 0, participantCount)
+	for k := range r.clients {
+		participants = append(participants, k.Name)
+	}
+	message := &Message{
+		Action: BootstrapData,
+		Data: map[string]interface{}{
+			"users": participants,
+		},
+	}
+	client.send <- message.encode()
 }
 
 func (r *Room) subscribeToRoomMessages() {
@@ -90,9 +107,20 @@ func (r *Room) broadcastToClients(message []byte) {
 
 func (r *Room) notifyClientJoined(client *Client) {
 	message := &Message{
-		Action: SendMessageAction,
+		Action: UserJoinedAction,
 		Data: map[string]interface{}{
-			"message": fmt.Sprintf("%s joined", client.Name),
+			"user": client.Name,
+		},
+	}
+
+	r.publishRoomMessage(message.encode())
+}
+
+func (r *Room) notifyClientLeft(client *Client) {
+	message := &Message{
+		Action: UserLeftAction,
+		Data: map[string]interface{}{
+			"user": client.Name,
 		},
 	}
 

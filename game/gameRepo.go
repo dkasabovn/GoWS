@@ -48,11 +48,12 @@ func (qr *QuestionRepo) validate(m *ws.Message) error {
 	if m.Action != ws.QuestionSubmitted {
 		return errors.New("Wrong action")
 	}
-	if currentQuestion, ok := m.Data["currentQuestion"]; ok && int(currentQuestion.(float64)) != qr.currentQuestion {
+	cq := qr.questions[qr.currentQuestion-1]
+	if questionID, ok := m.Data["qid"]; ok && int(questionID.(float64)) != cq.questionID() {
 		return errors.New("Incorrect Question was Provided")
 	}
 	if answer, ok := m.Data["answer"]; ok {
-		isCorrect := qr.questions[qr.currentQuestion-1].validate(answer)
+		isCorrect := cq.validate(answer)
 		qr.submissions[qr.currentQuestion-1][m.Sender.Name] = isCorrect
 		log.Println(qr.submissions[qr.currentQuestion-1])
 		return nil

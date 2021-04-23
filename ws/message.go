@@ -12,6 +12,8 @@ const LeaveRoomAction = "leave-room"
 const UserJoinedAction = "user-join"
 const UserLeftAction = "user-left"
 const RoomJoinedAction = "room-joined"
+const BootstrapData = "bootstrap-data"
+const SendDirectMessage = "send-dm"
 
 // Game Messages
 const ReadyUp = "ready-up"
@@ -20,6 +22,7 @@ const EndGame = "end-game"
 const NextQuestion = "next-question"
 const QuestionSubmitted = "question-submitted"
 const SendAnswer = "send-answer"
+const GameStarting = "game-starting"
 
 type Message struct {
 	Action string                 `json:"action"`
