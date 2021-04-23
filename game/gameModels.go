@@ -13,6 +13,7 @@ const (
 type Question interface {
 	questionType() int
 	validate(userResponse interface{}) bool
+	questionID() int
 }
 
 type MultipleChoice struct {
@@ -36,11 +37,19 @@ func (fr *FreeResponse) validate(userResponse interface{}) bool {
 	return false
 }
 
+func (fr *FreeResponse) questionID() int {
+	return 0
+}
+
 func (mp *MultipleChoice) validate(userResponse interface{}) bool {
 	if val, ok := userResponse.(int); ok {
 		return val == mp.Answer
 	}
 	return false
+}
+
+func (mp *MultipleChoice) questionID() int {
+	return mp.Qid
 }
 
 func (fr *FreeResponse) questionType() int {
