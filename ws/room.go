@@ -68,8 +68,7 @@ func (r *Room) registerClient(client *Client) {
 }
 
 func (r *Room) notifyClientOfParticipants(client *Client) {
-	participantCount := r.Active()
-	participants := make([]string, 0, participantCount)
+	participants := make([]string, 0)
 	for k := range r.clients {
 		participants = append(participants, k.Name)
 	}
