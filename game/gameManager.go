@@ -15,7 +15,7 @@ type GameManager struct {
 
 func (gme *GameManager) readyUpStage() {
 	// TODO Currently skips if one player readies up; Probably should be both
-	gme.timer = time.NewTimer(120 * time.Second)
+	gme.timer = time.NewTimer(15 * time.Second)
 	readiedUp := map[string]bool{}
 	for {
 		select {
@@ -39,10 +39,12 @@ func (gme *GameManager) readyUpStage() {
 func (gme *GameManager) playGameStage() {
 	// TODO do a better job of tracking if all users have answered; Skip if all answered
 	gme.timer = time.NewTimer(0 * time.Second)
+	// log.Println(gme)
 	startedFlag := false
 	for {
 		select {
 		case msg := <-gme.room.Commands:
+			log.Println(msg)
 			err := gme.repo.validate(msg)
 			if err != nil {
 				log.Println(err)
