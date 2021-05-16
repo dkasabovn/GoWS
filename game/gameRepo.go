@@ -12,6 +12,7 @@ import (
 type QuestionRepo struct {
 	questions       []Question
 	submissions     []map[string]interface{}
+	leaderboard     map[string]int
 	currentQuestion int
 }
 
@@ -55,6 +56,15 @@ func (qr *QuestionRepo) validate(m *ws.Message) error {
 	if answer, ok := m.Data["answer"]; ok {
 		isCorrect := cq.validate(answer)
 		qr.submissions[qr.currentQuestion-1][m.Sender.Name] = isCorrect
+		if currentValue, ok := qr.leaderboard[m.Sender.Name]; ok {
+			qr.leaderboard[m.Sender.Name] = currentValue + 1
+		} else {
+			if isCorrect {
+				qr.leaderboard[m.Sender.Name] = 1
+			} else {
+				qr.leaderboard[m.Sender.Name] = 0
+			}
+		}
 		log.Println(qr.submissions[qr.currentQuestion-1])
 		return nil
 	}
@@ -63,6 +73,10 @@ func (qr *QuestionRepo) validate(m *ws.Message) error {
 
 func (qr *QuestionRepo) getResults() map[string]interface{} {
 	return qr.submissions[qr.currentQuestion-1]
+}
+
+func (qr *QuestionRepo) getLeaderboard() map[string]int {
+	return qr.leaderboard
 }
 
 // TODO actually get random question IDs

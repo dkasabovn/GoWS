@@ -13,8 +13,8 @@ type Room struct {
 	name       string
 	capacity   int
 	private    bool
-	Broadcast  chan *Message
-	Commands   chan *Message
+	broadcast  chan *Message
+	Internal   chan *Message
 	clients    map[*Client]bool
 	register   chan *Client
 	unregister chan *Client
@@ -29,8 +29,8 @@ func NewRoom(private bool) *Room {
 		clients:    make(map[*Client]bool),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
-		Broadcast:  make(chan *Message, 1<<3),
-		Commands:   make(chan *Message),
+		broadcast:  make(chan *Message, 1<<3),
+		Internal:   make(chan *Message),
 		private:    private,
 		capacity:   1 << 3,
 		ctx:        ctx,
@@ -44,6 +44,10 @@ func (r *Room) ID() string {
 
 func (r *Room) Active() int {
 	return len(r.clients)
+}
+
+func (r *Room) BroadcastMessage(message *Message) {
+	r.broadcast <- message
 }
 
 func (r *Room) publishRoomMessage(message []byte) {
@@ -137,7 +141,7 @@ func (r *Room) Run() {
 		case client := <-r.unregister:
 			log.Println("Room; Client Unregistered")
 			r.unregisterClient(client)
-		case msg := <-r.Broadcast:
+		case msg := <-r.broadcast:
 			log.Println("Room; Broadcasting")
 			r.publishRoomMessage(msg.encode())
 		case <-r.ctx.Done():
@@ -147,8 +151,8 @@ func (r *Room) Run() {
 			}
 			close(r.register)
 			close(r.unregister)
-			close(r.Broadcast)
-			close(r.Commands)
+			close(r.broadcast)
+			close(r.Internal)
 			MainHub.RemoveRoom(r.ID())
 			return
 		}

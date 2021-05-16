@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -43,7 +42,6 @@ var Upgrader = websocket.Upgrader{
 type Client struct {
 	conn *websocket.Conn
 	send chan []byte
-	ID   uuid.UUID
 	Name string
 	room *Room
 }
@@ -51,7 +49,6 @@ type Client struct {
 func NewClient(conn *websocket.Conn, server *Room, name string) *Client {
 	// TODO fetch uuid from supabase given auth
 	return &Client{
-		ID:   uuid.New(),
 		Name: name,
 		conn: conn,
 		room: server,
@@ -71,9 +68,9 @@ func (c *Client) handleNewMessage(jsonMessage []byte) {
 
 	switch message.Action {
 	case SendMessageAction:
-		c.room.Broadcast <- &message
+		c.room.broadcast <- &message
 	case QuestionSubmitted, ReadyUp:
-		c.room.Commands <- &message
+		c.room.Internal <- &message
 	case LeaveRoomAction:
 		c.handleLeaveRoomMessage(message)
 	}

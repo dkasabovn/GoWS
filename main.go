@@ -12,6 +12,15 @@ import (
 
 var addr = flag.String("addr", ":8080", "http server address")
 
+type Claims2 struct {
+	name    string
+	email   string
+	picture string
+	sub     string
+	iat     string
+	exp     string
+}
+
 func main() {
 	flag.Parse()
 
@@ -28,5 +37,4 @@ func main() {
 	})
 
 	log.Fatal(http.ListenAndServe(*addr, nil))
-
 }
