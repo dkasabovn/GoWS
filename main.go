@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"main/config"
-	"main/game"
 	"main/ws"
 	"net/http"
 )
@@ -27,14 +26,10 @@ func main() {
 	config.CreateRedisClient()
 	config.CreateFirestoreClient()
 	fmt.Println("big pog")
-	ws.NewHub()
+	ws.Init()
+	go ws.Main.Run()
 
-	http.HandleFunc("/ws", ws.MainHub.ServeRoom)
-	http.HandleFunc("/create", func(w http.ResponseWriter, r *http.Request) {
-		room := ws.MainHub.StartGame(w, r)
-		gme := game.NewGameManager(room)
-		go gme.Run()
-	})
+	http.HandleFunc("/ws", ws.Main.ServeHub)
 
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }

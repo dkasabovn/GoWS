@@ -1,15 +1,14 @@
-package game
+package ws
 
 import (
 	"log"
-	"main/ws"
 	"time"
 )
 
 type GameManager struct {
 	repo         *QuestionRepo
 	timer        *time.Timer
-	room         *ws.Room
+	room         *Room
 	players      int
 	questionTime int
 	readyUpTime  int
@@ -23,16 +22,16 @@ func (gme *GameManager) readyUpStage() {
 		select {
 		case <-gme.timer.C:
 			return
-		case command := <-gme.room.Internal:
-			if command.Action == ws.ReadyUp {
-				gme.room.BroadcastMessage(createMessage(ws.ReadyUp, map[string]interface{}{
+		case command := <-gme.room.server.internal:
+			if command.Action == ReadyUp {
+				gme.room.BroadcastMessage(createMessage(ReadyUp, map[string]interface{}{
 					"user": command.Sender.Name,
 				}))
 				readiedUp[command.Sender.Name] = true
 			}
 			if len(readiedUp) == gme.room.Active() {
 				gme.players = len(readiedUp)
-				gme.room.BroadcastMessage(createMessage(ws.GameStarting, map[string]interface{}{
+				gme.room.BroadcastMessage(createMessage(GameStarting, map[string]interface{}{
 					"time": 5,
 				}))
 				return
@@ -46,7 +45,7 @@ func (gme *GameManager) playGameStage() {
 	startedFlag := false
 	for {
 		select {
-		case msg := <-gme.room.Internal:
+		case msg := <-gme.room.server.internal:
 			log.Println(msg)
 			err := gme.repo.validate(msg)
 			if err != nil {
@@ -63,7 +62,7 @@ func (gme *GameManager) playGameStage() {
 					"results":     gme.repo.getResults(),
 					"leaderboard": gme.repo.getLeaderboard(),
 				}
-				gme.room.BroadcastMessage(createMessage(ws.SendAnswer, sendAnswerPacket))
+				gme.room.BroadcastMessage(createMessage(SendAnswer, sendAnswerPacket))
 				time.Sleep(5 * time.Second)
 			} else {
 				startedFlag = true
@@ -86,16 +85,16 @@ func (gme *GameManager) sendQuestion(q *Question) {
 		return
 	}
 	payload["time"] = gme.questionTime
-	nextQuestionMsg := &ws.Message{
-		Action: ws.NextQuestion,
+	nextQuestionMsg := &Message{
+		Action: NextQuestion,
 		Data:   payload,
 	}
 	gme.room.BroadcastMessage(nextQuestionMsg)
 }
 
 func (gme *GameManager) endGameStage() {
-	endGameMsg := &ws.Message{
-		Action: ws.EndGame,
+	endGameMsg := &Message{
+		Action: EndGame,
 		Data: map[string]interface{}{
 			"message": "game is over! Room blowing up in 10 seconds ~OwO~",
 		},
@@ -131,7 +130,7 @@ func (gme *GameManager) Run() {
 	gme.room.Terminate()
 }
 
-func NewGameManager(room *ws.Room) *GameManager {
+func NewGameManager(room *Room) *GameManager {
 	qr := NewQR()
 	qr.LoadRepo()
 	return &GameManager{
@@ -142,14 +141,14 @@ func NewGameManager(room *ws.Room) *GameManager {
 	}
 }
 
-func createMessage(action string, data map[string]interface{}) *ws.Message {
-	return &ws.Message{
+func createMessage(action string, data map[string]interface{}) *Message {
+	return &Message{
 		Action: action,
 		Data:   data,
 	}
 }
 
-func createSimpleMessage(action string, data string) *ws.Message {
+func createSimpleMessage(action string, data string) *Message {
 	return createMessage(action, map[string]interface{}{
 		"message": data,
 	})

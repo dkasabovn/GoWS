@@ -1,10 +1,9 @@
-package game
+package ws
 
 import (
 	"errors"
 	"log"
 	"main/config"
-	"main/ws"
 
 	"google.golang.org/api/iterator"
 )
@@ -19,6 +18,8 @@ type QuestionRepo struct {
 func NewQR() *QuestionRepo {
 	return &QuestionRepo{
 		questions:       make([]Question, 0),
+		submissions:     make([]map[string]interface{}, 0),
+		leaderboard:     make(map[string]int),
 		currentQuestion: 0,
 	}
 }
@@ -45,8 +46,8 @@ func (qr *QuestionRepo) questionsSubmitted() int {
 	return len(qr.submissions[qr.currentQuestion-1])
 }
 
-func (qr *QuestionRepo) validate(m *ws.Message) error {
-	if m.Action != ws.QuestionSubmitted {
+func (qr *QuestionRepo) validate(m *Message) error {
+	if m.Action != QuestionSubmitted {
 		return errors.New("Wrong action")
 	}
 	cq := qr.questions[qr.currentQuestion-1]

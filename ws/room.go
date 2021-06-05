@@ -13,11 +13,7 @@ type Room struct {
 	name       string
 	capacity   int
 	private    bool
-	broadcast  chan *Message
-	Internal   chan *Message
-	clients    map[*Client]bool
-	register   chan *Client
-	unregister chan *Client
+	server     *Server
 	ctx        context.Context
 	cancelFunc func()
 }
@@ -26,11 +22,7 @@ func NewRoom(private bool) *Room {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	return &Room{
 		id:         uuid.New(),
-		clients:    make(map[*Client]bool),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		broadcast:  make(chan *Message, 1<<3),
-		Internal:   make(chan *Message),
+		server:     NewServer(),
 		private:    private,
 		capacity:   1 << 3,
 		ctx:        ctx,
@@ -43,11 +35,11 @@ func (r *Room) ID() string {
 }
 
 func (r *Room) Active() int {
-	return len(r.clients)
+	return len(r.server.clients)
 }
 
 func (r *Room) BroadcastMessage(message *Message) {
-	r.broadcast <- message
+	r.server.broadcast <- message
 }
 
 func (r *Room) publishRoomMessage(message []byte) {
@@ -59,21 +51,21 @@ func (r *Room) publishRoomMessage(message []byte) {
 }
 
 func (r *Room) unregisterClient(client *Client) {
-	if _, ok := r.clients[client]; ok {
-		delete(r.clients, client)
+	if _, ok := r.server.clients[client]; ok {
+		delete(r.server.clients, client)
 		r.notifyClientLeft(client)
 	}
 }
 
 func (r *Room) registerClient(client *Client) {
-	r.clients[client] = true
+	r.server.clients[client] = true
 	r.notifyClientJoined(client)
 	r.notifyClientOfParticipants(client)
 }
 
 func (r *Room) notifyClientOfParticipants(client *Client) {
 	participants := make([]string, 0)
-	for k := range r.clients {
+	for k := range r.server.clients {
 		participants = append(participants, k.Name)
 	}
 	message := &Message{
@@ -103,7 +95,7 @@ func (r *Room) subscribeToRoomMessages() {
 }
 
 func (r *Room) broadcastToClients(message []byte) {
-	for client := range r.clients {
+	for client := range r.server.clients {
 		client.send <- message
 	}
 }
@@ -135,25 +127,24 @@ func (r *Room) Run() {
 
 	for {
 		select {
-		case client := <-r.register:
+		case client := <-r.server.register:
 			log.Println("Room; Client Registered")
 			r.registerClient(client)
-		case client := <-r.unregister:
+		case client := <-r.server.unregister:
 			log.Println("Room; Client Unregistered")
 			r.unregisterClient(client)
-		case msg := <-r.broadcast:
+		case msg := <-r.server.broadcast:
 			log.Println("Room; Broadcasting")
 			r.publishRoomMessage(msg.encode())
 		case <-r.ctx.Done():
 			log.Printf("Room %s cancelled\n", r.id.String())
-			for k := range r.clients {
+			for k := range r.server.clients {
 				k.Disconnect()
 			}
-			close(r.register)
-			close(r.unregister)
-			close(r.broadcast)
-			close(r.Internal)
-			MainHub.RemoveRoom(r.ID())
+			close(r.server.register)
+			close(r.server.unregister)
+			close(r.server.broadcast)
+			close(r.server.internal)
 			return
 		}
 

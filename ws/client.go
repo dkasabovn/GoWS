@@ -43,10 +43,10 @@ type Client struct {
 	conn *websocket.Conn
 	send chan []byte
 	Name string
-	room *Room
+	room *Server
 }
 
-func NewClient(conn *websocket.Conn, server *Room, name string) *Client {
+func NewClient(conn *websocket.Conn, server *Server, name string) *Client {
 	// TODO fetch uuid from supabase given auth
 	return &Client{
 		Name: name,
@@ -70,7 +70,7 @@ func (c *Client) handleNewMessage(jsonMessage []byte) {
 	case SendMessageAction:
 		c.room.broadcast <- &message
 	case QuestionSubmitted, ReadyUp:
-		c.room.Internal <- &message
+		c.room.internal <- &message
 	case LeaveRoomAction:
 		c.handleLeaveRoomMessage(message)
 	}

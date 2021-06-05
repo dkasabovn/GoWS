@@ -1,97 +1,106 @@
 package ws
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 )
 
-var MainHub *Hub
+// TODO store all rooms internally -> route users to rooms
+// ? disconnect users who are afk
+// TODO find matches between users
+// ? write tests
+// ? Factor in ELO
+// * user joins -> search for game -> if game is found register client to room via register channel; deregister client from lobby
+
+var Main *Hub
 
 type Hub struct {
-	registeredRooms map[string]*Room
+	server    *Server
+	algoTimer *time.Ticker
+	rooms     map[string]*Room
 }
 
-func NewHub() {
-	MainHub = &Hub{
-		registeredRooms: make(map[string]*Room),
+func Init() {
+	Main = &Hub{
+		algoTimer: time.NewTicker(time.Second * 5),
+		rooms:     make(map[string]*Room),
+		server:    NewServer(),
 	}
 }
 
-func (h *Hub) GetRoom(room string) (*Room, bool) {
-	// check if Room is registered in memory
-	if r, ok := h.registeredRooms[room]; ok {
-		return r, true
+func (h *Hub) onNewClient(client *Client) {
+	h.server.clients[client] = true
+}
+
+func (h *Hub) unregisterUser(client *Client) {
+	if _, ok := h.server.clients[client]; ok {
+		delete(h.server.clients, client)
 	}
-	// ? If using multiple cluster system the above check will not always work depending on which server the game is being hosted on
-	return nil, false
 }
 
-func (h *Hub) RemoveRoom(room string) {
-	delete(h.registeredRooms, room)
-}
-
-func (h *Hub) CreateRoom() *Room {
-	r := NewRoom(false)
-	h.registeredRooms[r.ID()] = r
-	go r.Run()
-	return r
-}
-
-func (h *Hub) StartGame(w http.ResponseWriter, r *http.Request) *Room {
-	// TODO once done with game manager logic like totally do this
-	log.Println("Got create room request")
-	room := h.CreateRoom()
-	data := map[string]interface{}{
-		"socket": room.ID(),
+func (h *Hub) matchmakingAlgorithm() {
+	var clientOne, clientTwo *Client
+	for k := range h.server.clients {
+		if clientOne == nil {
+			clientOne = k
+		} else {
+			clientTwo = k
+			h.createGame(clientOne, clientTwo)
+			clientOne = nil
+			clientTwo = nil
+		}
+		log.Println("looping")
 	}
-	body, err := json.Marshal(data)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write(body)
-	w.Header().Add("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	log.Println("Finished request")
-	return room
 }
 
-func (h *Hub) ServeRoom(w http.ResponseWriter, r *http.Request) {
+func (h *Hub) createGame(one, two *Client) {
+	room := NewRoom(false)
+	go room.Run()
+	room.server.register <- one
+	room.server.register <- two
+	h.unregisterUser(one)
+	h.unregisterUser(two)
+	log.Println("Users connected to Game Room")
+	gme := NewGameManager(room)
+	go gme.Run()
+}
+
+func (h *Hub) Run() {
+	for {
+		select {
+		case client := <-h.server.register:
+			log.Println("User In Q")
+			h.onNewClient(client)
+		case client := <-h.server.unregister:
+			log.Println("Dequeued user")
+			h.unregisterUser(client)
+		case <-h.algoTimer.C:
+			if len(h.server.clients) > 1 {
+				h.matchmakingAlgorithm()
+				log.Println("Matchmaking and finding users")
+			}
+			log.Printf("Not enough players %d\n", len(h.server.clients))
+			break
+		}
+	}
+}
+
+func (h *Hub) ServeHub(w http.ResponseWriter, r *http.Request) {
 	params := r.URL.Query()
 	name, ok := params["name"]
 
 	if !ok {
-		log.Println("Client does not have a name apparently. Really rude of them tbh")
-	}
-
-	roomName, rok := params["room"]
-
-	if !rok {
-		log.Println("No room defined; Central Hub is not configured")
-	}
-
-	room, exists := h.GetRoom(roomName[0])
-	if !exists {
-		log.Println("Room defined but doesn't exist; Front end error?")
+		log.Fatalln("Put in a name doofenshmirtz")
 	}
 
 	conn, err := Upgrader.Upgrade(w, r, nil)
+
 	if err != nil {
-		log.Println(err)
+		log.Fatalln("Idiot")
 	}
 
-	client := NewClient(conn, room, name[0])
-
+	client := NewClient(conn, h.server, name[0])
 	client.Run()
-
-	log.Println("Client Connected; Pumps Started")
-}
-
-func (h *Hub) TerminateRoom(id string) {
-	room, ok := h.GetRoom(id)
-	if !ok {
-		return
-	}
-	room.Terminate()
+	log.Println("Client connected; Pumps started")
 }
