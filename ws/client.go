@@ -56,6 +56,10 @@ func NewClient(conn *websocket.Conn, server *Server, name string) *Client {
 	}
 }
 
+func (c *Client) InjectServer(newServer *Server) {
+	c.room = newServer
+}
+
 func (c *Client) handleNewMessage(jsonMessage []byte) {
 
 	var message Message

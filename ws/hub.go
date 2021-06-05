@@ -57,6 +57,8 @@ func (h *Hub) matchmakingAlgorithm() {
 func (h *Hub) createGame(one, two *Client) {
 	room := NewRoom(false)
 	go room.Run()
+	one.InjectServer(room.server)
+	two.InjectServer(room.server)
 	room.server.register <- one
 	room.server.register <- two
 	h.unregisterUser(one)
